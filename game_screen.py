@@ -24,6 +24,8 @@ POINT_RADIUS = 5
 POINT_HIT_RADIUS = 12
 PATH_WIDTH = 2
 ANIMATION_SPEED_EDGES_PER_S = 14.0
+MIN_SCALE = 0.2
+MAX_SCALE = 6.0
 HUD_POS = (10, 10)
 HUD_STATUS_POS = (10, 32)
 HUD_HINT_POS = (10, 54)
@@ -43,22 +45,41 @@ STRATEGIES: list[Strategy] = [
 ]
 
 
-def _to_point(pos: tuple[int, int]) -> tuple[float, float]:
-    x, y = pos
-    return (float(x), float(y))
+def _world_to_screen(
+    pos_world: tuple[float, float],
+    *,
+    scale: float,
+    offset: tuple[float, float],
+) -> tuple[int, int]:
+    x, y = pos_world
+    ox, oy = offset
+    return (int(round(x * scale + ox)), int(round(y * scale + oy)))
 
 
-def _to_screen(pos: tuple[float, float]) -> tuple[int, int]:
-    x, y = pos
-    return (int(round(x)), int(round(y)))
+def _screen_to_world(
+    pos_screen: tuple[int, int],
+    *,
+    scale: float,
+    offset: tuple[float, float],
+) -> tuple[float, float]:
+    sx, sy = pos_screen
+    ox, oy = offset
+    return ((sx - ox) / scale, (sy - oy) / scale)
 
 
-def _hit_test(points: list[tuple[float, float]], pos: tuple[float, float]) -> int | None:
-    x, y = pos
+def _hit_test(
+    points_world: list[tuple[float, float]],
+    pos_screen: tuple[int, int],
+    *,
+    scale: float,
+    offset: tuple[float, float],
+) -> int | None:
+    sx, sy = pos_screen
     best_i: int | None = None
     best_d2 = float("inf")
-    for i, (px, py) in enumerate(points):
-        d2 = (px - x) ** 2 + (py - y) ** 2
+    for i, p in enumerate(points_world):
+        px, py = _world_to_screen(p, scale=scale, offset=offset)
+        d2 = (px - sx) ** 2 + (py - sy) ** 2
         if d2 <= POINT_HIT_RADIUS**2 and d2 < best_d2:
             best_d2 = d2
             best_i = i
@@ -90,7 +111,8 @@ def run_game(
 ) -> None:
     pygame.init()
 
-    screen = pygame.display.set_mode(WINDOW_SIZE)
+    window_size = WINDOW_SIZE
+    screen = pygame.display.set_mode(window_size, pygame.RESIZABLE)
     clock = pygame.time.Clock()
     font = pygame.font.Font(None, 22)
 
@@ -108,6 +130,12 @@ def run_game(
     export_path: Path | None = None
     animate = True
     draw_progress = 0.0
+
+    view_scale = 1.0
+    view_offset = (0.0, 0.0)
+    panning = False
+    pan_start_mouse = (0, 0)
+    pan_start_offset = (0.0, 0.0)
 
     def set_status(message: str, *, seconds: float = 2.0) -> None:
         nonlocal status, status_until
@@ -180,6 +208,30 @@ def run_game(
                 pygame.quit()
                 raise SystemExit
 
+            if event.type == pygame.VIDEORESIZE:
+                old_w, old_h = window_size
+                center_world = _screen_to_world(
+                    (old_w // 2, old_h // 2),
+                    scale=view_scale,
+                    offset=view_offset,
+                )
+                window_size = (event.w, event.h)
+                screen = pygame.display.set_mode(window_size, pygame.RESIZABLE)
+                new_w, new_h = window_size
+                view_offset = (
+                    (new_w / 2) - center_world[0] * view_scale,
+                    (new_h / 2) - center_world[1] * view_scale,
+                )
+
+            if event.type == pygame.MOUSEWHEEL:
+                mx, my = pygame.mouse.get_pos()
+                wx, wy = _screen_to_world((mx, my), scale=view_scale, offset=view_offset)
+                zoom = 1.1**event.y
+                new_scale = max(MIN_SCALE, min(MAX_SCALE, view_scale * zoom))
+                new_offset = (mx - wx * new_scale, my - wy * new_scale)
+                view_scale = new_scale
+                view_offset = new_offset
+
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_BACKSPACE:
                     if points:
@@ -212,17 +264,41 @@ def run_game(
                     export_path = Path(f"{EXPORT_PREFIX}_{time.strftime('%Y%m%d_%H%M%S')}.png")
                     set_status(f"exporting -> {export_path}")
 
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 3:
+                panning = True
+                pan_start_mouse = pygame.mouse.get_pos()
+                pan_start_offset = view_offset
+
+            if event.type == pygame.MOUSEBUTTONUP and event.button == 3:
+                panning = False
+
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                mouse = _to_point(pygame.mouse.get_pos())
-                hit = _hit_test(points, mouse)
+                mouse_screen = pygame.mouse.get_pos()
+                hit = _hit_test(points, mouse_screen, scale=view_scale, offset=view_offset)
                 if hit is None:
-                    points.append(mouse)
+                    points.append(
+                        _screen_to_world(
+                            mouse_screen,
+                            scale=view_scale,
+                            offset=view_offset,
+                        )
+                    )
                     recompute_path()
                 else:
                     dragging_index = hit
 
-            if event.type == pygame.MOUSEMOTION and dragging_index is not None:
-                points[dragging_index] = _to_point(pygame.mouse.get_pos())
+            if event.type == pygame.MOUSEMOTION and panning:
+                mx, my = pygame.mouse.get_pos()
+                sx, sy = pan_start_mouse
+                ox, oy = pan_start_offset
+                view_offset = (ox + (mx - sx), oy + (my - sy))
+
+            if event.type == pygame.MOUSEMOTION and dragging_index is not None and not panning:
+                points[dragging_index] = _screen_to_world(
+                    pygame.mouse.get_pos(),
+                    scale=view_scale,
+                    offset=view_offset,
+                )
 
             if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
                 if dragging_index is not None:
@@ -238,7 +314,7 @@ def run_game(
             pygame.draw.circle(
                 surface=screen,
                 color=color,
-                center=_to_screen(point),
+                center=_world_to_screen(point, scale=view_scale, offset=view_offset),
                 radius=POINT_RADIUS,
             )
 
@@ -258,11 +334,16 @@ def run_game(
                     pygame.draw.line(
                         screen,
                         BLACK,
-                        _to_screen(a),
-                        _to_screen(b),
+                        _world_to_screen(a, scale=view_scale, offset=view_offset),
+                        _world_to_screen(b, scale=view_scale, offset=view_offset),
                         width=PATH_WIDTH,
                     )
-                    pygame.draw.aaline(screen, BLACK, _to_screen(a), _to_screen(b))
+                    pygame.draw.aaline(
+                        screen,
+                        BLACK,
+                        _world_to_screen(a, scale=view_scale, offset=view_offset),
+                        _world_to_screen(b, scale=view_scale, offset=view_offset),
+                    )
 
                 if full_edges < len(edges) and frac > 0.0:
                     a, b = edges[full_edges]
@@ -272,26 +353,36 @@ def run_game(
                     pygame.draw.line(
                         screen,
                         BLACK,
-                        _to_screen(a),
-                        _to_screen(mid),
+                        _world_to_screen(a, scale=view_scale, offset=view_offset),
+                        _world_to_screen(mid, scale=view_scale, offset=view_offset),
                         width=PATH_WIDTH,
                     )
-                    pygame.draw.aaline(screen, BLACK, _to_screen(a), _to_screen(mid))
+                    pygame.draw.aaline(
+                        screen,
+                        BLACK,
+                        _world_to_screen(a, scale=view_scale, offset=view_offset),
+                        _world_to_screen(mid, scale=view_scale, offset=view_offset),
+                    )
             else:
                 for a, b in edges:
                     pygame.draw.line(
                         screen,
                         BLACK,
-                        _to_screen(a),
-                        _to_screen(b),
+                        _world_to_screen(a, scale=view_scale, offset=view_offset),
+                        _world_to_screen(b, scale=view_scale, offset=view_offset),
                         width=PATH_WIDTH,
                     )
-                    pygame.draw.aaline(screen, BLACK, _to_screen(a), _to_screen(b))
+                    pygame.draw.aaline(
+                        screen,
+                        BLACK,
+                        _world_to_screen(a, scale=view_scale, offset=view_offset),
+                        _world_to_screen(b, scale=view_scale, offset=view_offset),
+                    )
 
         mode = "closed" if closed else "open"
         strategy = STRATEGIES[strategy_index]
         length = _path_length(path, closed=closed)
-        hud = f"points: {len(points)}  {mode}  {strategy}  length: {length:.1f}"
+        hud = f"points: {len(points)}  {mode}  {strategy}  length: {length:.1f}  zoom: {view_scale:.2f}"
         screen.blit(font.render(hud, True, BLACK), HUD_POS)
 
         hint: str | None = None

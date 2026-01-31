@@ -26,8 +26,8 @@
 - [x] Improve drawing: anti-aliased lines, thicker path, distinct start/end markers.
 - [x] Add animated path drawing (progressively reveal the tour).
 - [x] Add drag-to-move points and update the route on release.
-- [ ] Add pan/zoom to support large coordinate ranges.
-- [ ] Handle window resizing cleanly (re-center UI, maintain aspect).
+- [x] Add pan/zoom to support large coordinate ranges.
+- [x] Handle window resizing cleanly (re-center UI, maintain aspect).
 - [x] Add a "save points" and "load points" feature (JSON or CSV).
 
 - [x] Add "export image" (PNG) of the current scene.
