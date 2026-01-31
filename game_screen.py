@@ -10,7 +10,6 @@ from pathlib import Path
 
 try:
     import pygame
-    import pygame.font
 except ModuleNotFoundError as exc:  # pragma: no cover
     raise ModuleNotFoundError(
         "pygame is required to run the interactive UI; install dependencies via 'pip install -r requirements.txt'"
@@ -112,18 +111,16 @@ def run_game(
     strategy: Strategy = "auto",
 ) -> None:
     pygame.init()
-    if not pygame.font.get_init():
-        pygame.font.init()
 
-    window_size = WINDOW_SIZE
-    screen = pygame.display.set_mode(window_size, pygame.RESIZABLE)
-    clock = pygame.time.Clock()
+    # Attempt to initialize font module, but handle broken installations (e.g. Python 3.14 + pygame 2.6.1 circular import)
     try:
+        if not pygame.font.get_init():
+            pygame.font.init()
         font = pygame.font.Font(None, 22)
-    except Exception:
+    except (ImportError, AttributeError, RuntimeError):
         font = None
 
-    points: list[tuple[float, float]] = []
+    window_size = WINDOW_SIZE
     path: list[tuple[float, float]] = []
     dragging_index: int | None = None
 
