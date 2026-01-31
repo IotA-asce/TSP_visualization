@@ -8,7 +8,7 @@
 - [x] Fix naming typos (e.g., `route_distace` -> `route_distance`) and tighten naming consistency.
 - [x] Add type hints across the solver and UI boundary (points as `tuple[float, float]`).
 - [x] Make `Vector.__mul__` return `NotImplemented` for unsupported operand types.
-- [ ] Decide whether `Vector` is core; if yes, migrate to `@dataclass(frozen=True)`.
+- [x] Decide whether `Vector` is core; if yes, migrate to `@dataclass(frozen=True)`.
 
 - [x] Factor distance computation into a pure helper and unit test it.
 - [x] Keep the brute-force solver as a reference implementation for small `n`.
