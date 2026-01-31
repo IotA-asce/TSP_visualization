@@ -7,7 +7,12 @@ import math
 import time
 from pathlib import Path
 
-import pygame
+try:
+    import pygame
+except ModuleNotFoundError as exc:  # pragma: no cover
+    raise ModuleNotFoundError(
+        "pygame is required to run the interactive UI; install dependencies via 'pip install -r requirements.txt'"
+    ) from exc
 
 from path_search import Strategy, find_path
 
@@ -20,6 +25,7 @@ POINT_HIT_RADIUS = 12
 PATH_WIDTH = 2
 HUD_POS = (10, 10)
 HUD_STATUS_POS = (10, 32)
+HUD_HINT_POS = (10, 54)
 
 SAVE_PATH = Path("points.json")
 EXPORT_PREFIX = "export"
@@ -75,7 +81,12 @@ def _path_length(path: list[tuple[float, float]], *, closed: bool) -> float:
     return total
 
 
-def run_game() -> None:
+def run_game(
+    *,
+    initial_points: list[tuple[float, float]] | None = None,
+    closed: bool = True,
+    strategy: Strategy = "auto",
+) -> None:
     pygame.init()
 
     screen = pygame.display.set_mode(WINDOW_SIZE)
@@ -86,8 +97,10 @@ def run_game() -> None:
     path: list[tuple[float, float]] = []
     dragging_index: int | None = None
 
-    closed = True
-    strategy_index = 0
+    try:
+        strategy_index = STRATEGIES.index(strategy)
+    except ValueError:
+        strategy_index = 0
 
     status: str | None = None
     status_until = 0.0
@@ -151,6 +164,10 @@ def run_game() -> None:
             closed=closed,
             strategy=STRATEGIES[strategy_index],
         )
+
+    if initial_points:
+        points.extend([(float(x), float(y)) for (x, y) in initial_points])
+        recompute_path()
 
     while True:
         for event in pygame.event.get():
@@ -245,8 +262,17 @@ def run_game() -> None:
         hud = f"points: {len(points)}  {mode}  {strategy}  length: {length:.1f}"
         screen.blit(font.render(hud, True, BLACK), HUD_POS)
 
+        hint: str | None = None
+        if strategy == "bruteforce" and len(points) > 10:
+            hint = "warning: bruteforce is O(n!) and may freeze for n > 10"
+        elif len(points) > 200:
+            hint = "hint: large point counts may be slow; try 'nearest_two_opt'"
+
         if status is not None and time.time() <= status_until:
             screen.blit(font.render(status, True, BLACK), HUD_STATUS_POS)
+
+        if hint is not None:
+            screen.blit(font.render(hint, True, BLACK), HUD_HINT_POS)
 
         if export_path is not None:
             try:

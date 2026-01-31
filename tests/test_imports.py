@@ -15,6 +15,9 @@ class TestImports(unittest.TestCase):
         except ModuleNotFoundError as exc:
             raise unittest.SkipTest(f"pygame missing: {exc}") from exc
 
+    def test_import_cli_module(self) -> None:
+        importlib.import_module("tsp_visualization")
+
 
 if __name__ == "__main__":
     unittest.main()

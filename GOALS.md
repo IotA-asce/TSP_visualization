@@ -3,7 +3,7 @@
 - [ ] Define the target experience: click points, compute TSP route, visualize it clearly and fast.
 - [x] Move `run_game()` behind `if __name__ == "__main__":` to avoid work at import time.
 - [x] Add a `requirements.txt` (or `pyproject.toml`) describing `pygame`, `numpy`, `scipy`.
-- [ ] Add a simple CLI entrypoint (e.g., `python3 -m tsp_visualization`) with window/solver flags.
+- [x] Add a simple CLI entrypoint (e.g., `python3 -m tsp_visualization`) with window/solver flags.
 - [x] Validate `find_path(points)` inputs and document behavior for `len(points) < 2`.
 - [x] Fix naming typos (e.g., `route_distace` -> `route_distance`) and tighten naming consistency.
 - [x] Add type hints across the solver and UI boundary (points as `tuple[float, float]`).
@@ -41,6 +41,6 @@
 - [x] Add GitHub Actions CI for lint + typecheck + tests.
 
 - [ ] Expand `README.md` (keep UTF-16 encoding intact) with setup, usage, and limitations.
-- [ ] Document algorithmic complexity and recommended point limits in the UI.
+- [x] Document algorithmic complexity and recommended point limits in the UI.
 - [ ] Add lightweight developer notes on architecture boundaries (UI vs solver vs math).
 - [ ] Add structured error messages and graceful exits (quit, missing deps, invalid inputs).
