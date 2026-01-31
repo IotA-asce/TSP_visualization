@@ -18,7 +18,7 @@
 - [x] Add an optional time budget / iteration cap for heuristics.
 - [x] Keep solver deterministic by default; add seeding if randomness is introduced.
 - [x] Avoid recomputing the full route on every frame; only recompute on input changes.
-- [ ] (Optional) Offload heavy solver runs to a background thread/process to keep UI smooth.
+- [x] (Optional) Offload heavy solver runs to a background thread/process to keep UI smooth.
 - [x] Display route length (and maybe compute time) on-screen.
 
 - [x] Add keyboard shortcuts: undo last point, clear points, recompute.

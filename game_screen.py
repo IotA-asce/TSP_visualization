@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import math
+import threading
 import time
 from pathlib import Path
 
@@ -131,6 +132,10 @@ def run_game(
     animate = True
     draw_progress = 0.0
 
+    compute_lock = threading.Lock()
+    compute_request_id = 0
+    computing = False
+
     view_scale = 1.0
     view_offset = (0.0, 0.0)
     panning = False
@@ -191,12 +196,54 @@ def run_game(
     def recompute_path() -> None:
         nonlocal path
         nonlocal draw_progress
-        path = find_path(
-            points=points,
-            closed=closed,
-            strategy=STRATEGIES[strategy_index],
-        )
-        draw_progress = 0.0
+
+        nonlocal compute_request_id
+        nonlocal computing
+
+        points_snapshot = list(points)
+        closed_snapshot = closed
+        strategy_snapshot = STRATEGIES[strategy_index]
+
+        if len(points_snapshot) < 2:
+            path = list(points_snapshot)
+            draw_progress = 0.0
+            return
+
+        with compute_lock:
+            compute_request_id += 1
+            request_id = compute_request_id
+            computing = True
+
+        def worker() -> None:
+            nonlocal path
+            nonlocal draw_progress
+            nonlocal computing
+
+            t0 = time.perf_counter()
+            try:
+                new_path = find_path(
+                    points=points_snapshot,
+                    closed=closed_snapshot,
+                    strategy=strategy_snapshot,
+                )
+            except Exception as exc:
+                with compute_lock:
+                    if request_id != compute_request_id:
+                        return
+                    computing = False
+                set_status(f"solver error: {exc}")
+                return
+
+            elapsed_ms = (time.perf_counter() - t0) * 1000.0
+            with compute_lock:
+                if request_id != compute_request_id:
+                    return
+                path = new_path
+                draw_progress = 0.0
+                computing = False
+            set_status(f"computed in {elapsed_ms:.1f} ms")
+
+        threading.Thread(target=worker, daemon=True).start()
 
     if initial_points:
         points.extend([(float(x), float(y)) for (x, y) in initial_points])
@@ -393,6 +440,8 @@ def run_game(
 
         if status is not None and time.time() <= status_until:
             screen.blit(font.render(status, True, BLACK), HUD_STATUS_POS)
+        elif computing:
+            screen.blit(font.render("computing...", True, BLACK), HUD_STATUS_POS)
 
         if hint is not None:
             screen.blit(font.render(hint, True, BLACK), HUD_HINT_POS)
