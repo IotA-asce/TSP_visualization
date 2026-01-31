@@ -155,6 +155,11 @@ def run_game(
     pan_start_mouse = (0, 0)
     pan_start_offset = (0.0, 0.0)
 
+    # Human vs Solver Mode State
+    human_mode = False
+    user_route: list[int] = []
+    solver_best_len: float = 0.0
+
     def set_status(message: str, *, seconds: float = 2.0) -> None:
         nonlocal status, status_until
         status = message
@@ -323,6 +328,18 @@ def run_game(
                 elif event.key == pygame.K_e:
                     export_path = Path(f"{EXPORT_PREFIX}_{time.strftime('%Y%m%d_%H%M%S')}.png")
                     set_status(f"exporting -> {export_path}")
+                elif event.key == pygame.K_h:
+                    if len(points) >= 3:
+                        human_mode = not human_mode
+                        if human_mode:
+                            user_route = []
+                            # Capture the current solver length as the target
+                            solver_best_len = _path_length(path, closed=closed)
+                            set_status("Human Mode: Click points to connect them")
+                        else:
+                            set_status("Exited Human Mode")
+                    else:
+                        set_status("Need at least 3 points for Human Mode")
 
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 3:
                 panning = True
@@ -335,17 +352,27 @@ def run_game(
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 mouse_screen = pygame.mouse.get_pos()
                 hit = _hit_test(points, mouse_screen, scale=view_scale, offset=view_offset)
-                if hit is None:
-                    points.append(
-                        _screen_to_world(
-                            mouse_screen,
-                            scale=view_scale,
-                            offset=view_offset,
-                        )
-                    )
-                    recompute_path()
+
+                if human_mode:
+                    if hit is not None:
+                        # Logic for building user path
+                        if hit not in user_route:
+                            user_route.append(hit)
+                        elif closed and len(user_route) == len(points) and hit == user_route[0]:
+                            # Allow closing the loop by clicking the first point again
+                            pass
                 else:
-                    dragging_index = hit
+                    if hit is None:
+                        points.append(
+                            _screen_to_world(
+                                mouse_screen,
+                                scale=view_scale,
+                                offset=view_offset,
+                            )
+                        )
+                        recompute_path()
+                    else:
+                        dragging_index = hit
 
             if event.type == pygame.MOUSEMOTION and panning:
                 mx, my = pygame.mouse.get_pos()
@@ -378,7 +405,7 @@ def run_game(
                 radius=POINT_RADIUS,
             )
 
-        if len(path) >= 2:
+        if len(path) >= 2 and not human_mode:
             edges: list[tuple[tuple[float, float], tuple[float, float]]] = []
             for a, b in zip(path, path[1:]):
                 edges.append((a, b))
@@ -439,10 +466,57 @@ def run_game(
                         _world_to_screen(b, scale=view_scale, offset=view_offset),
                     )
 
+        if human_mode and len(user_route) >= 2:
+            BLUE = (0, 0, 255)
+            # Draw user edges
+            for i in range(len(user_route) - 1):
+                idx1 = user_route[i]
+                idx2 = user_route[i + 1]
+                p1 = points[idx1]
+                p2 = points[idx2]
+                pygame.draw.line(
+                    screen,
+                    BLUE,
+                    _world_to_screen(p1, scale=view_scale, offset=view_offset),
+                    _world_to_screen(p2, scale=view_scale, offset=view_offset),
+                    width=PATH_WIDTH,
+                )
+
+            # Draw closing edge if completed
+            if closed and len(user_route) == len(points):
+                idx1 = user_route[-1]
+                idx2 = user_route[0]
+                p1 = points[idx1]
+                p2 = points[idx2]
+                pygame.draw.line(
+                    screen,
+                    BLUE,
+                    _world_to_screen(p1, scale=view_scale, offset=view_offset),
+                    _world_to_screen(p2, scale=view_scale, offset=view_offset),
+                    width=PATH_WIDTH,
+                )
+
         mode = "closed" if closed else "open"
         strategy = STRATEGIES[strategy_index]
         length = _path_length(path, closed=closed)
-        hud = f"points: {len(points)}  {mode}  {strategy}  length: {length:.1f}  zoom: {view_scale:.2f}"
+
+        if human_mode:
+            user_len = 0.0
+            if len(user_route) > 1:
+                user_path_pts = [points[i] for i in user_route]
+                user_len = _path_length(
+                    user_path_pts, closed=(closed and len(user_route) == len(points))
+                )
+
+            score_str = ""
+            if closed and len(user_route) == len(points) and user_len > 0:
+                ratio = (solver_best_len / user_len) * 100
+                score_str = f"  AI: {solver_best_len:.1f}  Score: {ratio:.1f}%"
+
+            hud = f"HUMAN MODE: {len(user_route)}/{len(points)}  User: {user_len:.1f}{score_str}"
+        else:
+            hud = f"points: {len(points)}  {mode}  {strategy}  length: {length:.1f}  zoom: {view_scale:.2f}"
+
         if font:
             screen.blit(font.render(hud, True, BLACK), HUD_POS)
 

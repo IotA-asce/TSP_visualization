@@ -48,10 +48,10 @@
 # Phase 2: Interactivity & Games
 
 ## Mini-Games
-- [ ] **"Human vs Solver" Mode**:
-    - [ ] Add a "Drawing Mode" where the user clicks points sequentially to define their own path.
-    - [ ] Compare User Path Length vs Solver Path Length (Score = `Solver / User * 100`).
-    - [ ] Display a "Scoreboard" or comparison overlay.
+- [x] **"Human vs Solver" Mode**:
+    - [x] Add a "Drawing Mode" where the user clicks points sequentially to define their own path.
+    - [x] Compare User Path Length vs Solver Path Length (Score = `Solver / User * 100`).
+    - [x] Display a "Scoreboard" or comparison overlay.
 - [ ] **"Untangle" (Manual 2-Opt) Game**:
     - [ ] Generate a random "tangled" path (lots of crossings).
     - [ ] Allow users to click two edges to perform a swap (manual 2-opt).
