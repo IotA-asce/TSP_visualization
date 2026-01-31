@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import json
 import math
+import time
+from pathlib import Path
 
 import pygame
 
@@ -16,6 +19,10 @@ POINT_RADIUS = 5
 POINT_HIT_RADIUS = 12
 PATH_WIDTH = 2
 HUD_POS = (10, 10)
+HUD_STATUS_POS = (10, 32)
+
+SAVE_PATH = Path("points.json")
+EXPORT_PREFIX = "export"
 
 STRATEGIES: list[Strategy] = [
     "auto",
@@ -79,6 +86,61 @@ def run_game() -> None:
     closed = True
     strategy_index = 0
 
+    status: str | None = None
+    status_until = 0.0
+    export_path: Path | None = None
+
+    def set_status(message: str, *, seconds: float = 2.0) -> None:
+        nonlocal status, status_until
+        status = message
+        status_until = time.time() + seconds
+
+    def save_state() -> None:
+        data = {
+            "points": [[x, y] for (x, y) in points],
+            "closed": closed,
+            "strategy": STRATEGIES[strategy_index],
+        }
+        SAVE_PATH.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        set_status(f"saved {len(points)} points -> {SAVE_PATH}")
+
+    def load_state() -> None:
+        nonlocal closed, strategy_index, dragging_index
+        try:
+            data = json.loads(SAVE_PATH.read_text(encoding="utf-8"))
+        except FileNotFoundError:
+            set_status(f"missing {SAVE_PATH}")
+            return
+        except json.JSONDecodeError:
+            set_status(f"invalid json in {SAVE_PATH}")
+            return
+
+        raw_points = data.get("points")
+        if not isinstance(raw_points, list):
+            set_status(f"invalid format in {SAVE_PATH}")
+            return
+
+        loaded_points: list[tuple[float, float]] = []
+        for p in raw_points:
+            if not isinstance(p, list) or len(p) != 2:
+                set_status(f"invalid point in {SAVE_PATH}")
+                return
+            loaded_points.append((float(p[0]), float(p[1])))
+
+        points.clear()
+        points.extend(loaded_points)
+
+        closed = bool(data.get("closed", True))
+        loaded_strategy = data.get("strategy", "auto")
+        if loaded_strategy in STRATEGIES:
+            strategy_index = STRATEGIES.index(loaded_strategy)
+        else:
+            strategy_index = 0
+
+        dragging_index = None
+        recompute_path()
+        set_status(f"loaded {len(points)} points <- {SAVE_PATH}")
+
     def recompute_path() -> None:
         nonlocal path
         path = find_path(
@@ -110,6 +172,13 @@ def run_game() -> None:
                 elif event.key == pygame.K_m:
                     strategy_index = (strategy_index + 1) % len(STRATEGIES)
                     recompute_path()
+                elif event.key == pygame.K_s:
+                    save_state()
+                elif event.key == pygame.K_l:
+                    load_state()
+                elif event.key == pygame.K_e:
+                    export_path = Path(f"{EXPORT_PREFIX}_{time.strftime('%Y%m%d_%H%M%S')}.png")
+                    set_status(f"exporting -> {export_path}")
 
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 mouse = _to_point(pygame.mouse.get_pos())
@@ -168,6 +237,18 @@ def run_game() -> None:
         length = _path_length(path, closed=closed)
         hud = f"points: {len(points)}  {mode}  {strategy}  length: {length:.1f}"
         screen.blit(font.render(hud, True, BLACK), HUD_POS)
+
+        if status is not None and time.time() <= status_until:
+            screen.blit(font.render(status, True, BLACK), HUD_STATUS_POS)
+
+        if export_path is not None:
+            try:
+                pygame.image.save(screen, str(export_path))
+            except Exception:
+                set_status(f"failed to export -> {export_path}")
+            else:
+                set_status(f"exported -> {export_path}")
+            export_path = None
 
         pygame.display.flip()
         clock.tick(60)

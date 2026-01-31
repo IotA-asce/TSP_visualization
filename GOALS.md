@@ -28,9 +28,9 @@
 - [x] Add drag-to-move points and update the route on release.
 - [ ] Add pan/zoom to support large coordinate ranges.
 - [ ] Handle window resizing cleanly (re-center UI, maintain aspect).
-- [ ] Add a "save points" and "load points" feature (JSON or CSV).
+- [x] Add a "save points" and "load points" feature (JSON or CSV).
 
-- [ ] Add "export image" (PNG) of the current scene.
+- [x] Add "export image" (PNG) of the current scene.
 - [ ] Add reproducible demo datasets (small, medium) for quick manual testing.
 - [ ] Add a non-interactive benchmark script to compare solver strategies.
 - [x] Add unit tests for `path_search.py` on tiny inputs (2-8 points).
