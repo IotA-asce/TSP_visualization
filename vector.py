@@ -3,16 +3,14 @@
 from __future__ import annotations
 
 import math
+from dataclasses import dataclass
 from types import NotImplementedType
 
 
+@dataclass(frozen=True)
 class Vector:
-    def __init__(self, x: float, y: float) -> None:
-        self.x = x
-        self.y = y
-
-    def __repr__(self) -> str:
-        return f"Vector({self.x}, {self.y})"
+    x: float
+    y: float
 
     def __str__(self) -> str:
         return f"({self.x}, {self.y})"
@@ -47,11 +45,6 @@ class Vector:
     def __neg__(self) -> Vector:
         return Vector(-self.x, -self.y)
 
-    def __eq__(self, other: object) -> bool:
-        if not isinstance(other, Vector):
-            return NotImplemented
-        return self.x == other.x and self.y == other.y
-
     def magnitude(self) -> float:
         return (self.x**2 + self.y**2) ** 0.5
 
@@ -69,7 +62,9 @@ class Vector:
         mag_product = self.magnitude() * other.magnitude()
         if mag_product == 0:
             raise ValueError("Cannot calculate angle with zero vector")
-        return math.acos(dot / mag_product)
+        # Clamp value to [-1, 1] to avoid domain errors due to floating point noise
+        val = max(-1.0, min(1.0, dot / mag_product))
+        return math.acos(val)
 
     def distance(self, other: Vector) -> float:
         dx = self.x - other.x

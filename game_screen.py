@@ -113,16 +113,26 @@ def run_game(
     pygame.init()
 
     # Attempt to initialize font module, but handle broken installations (e.g. Python 3.14 + pygame 2.6.1 circular import)
+    font = None
     try:
-        if not pygame.font.get_init():
-            pygame.font.init()
-        font = pygame.font.Font(None, 22)
-    except (ImportError, AttributeError, RuntimeError):
+        import warnings
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            if not pygame.font.get_init():
+                pygame.font.init()
+            font = pygame.font.Font(None, 22)
+    except Exception:
         font = None
 
     window_size = WINDOW_SIZE
+    points: list[tuple[float, float]] = []
     path: list[tuple[float, float]] = []
     dragging_index: int | None = None
+
+    screen = pygame.display.set_mode(window_size, pygame.RESIZABLE)
+    pygame.display.set_caption("TSP Visualization")
+    clock = pygame.time.Clock()
 
     try:
         strategy_index = STRATEGIES.index(strategy)
