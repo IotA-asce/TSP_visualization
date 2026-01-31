@@ -44,3 +44,27 @@
 - [x] Document algorithmic complexity and recommended point limits in the UI.
 - [x] Add lightweight developer notes on architecture boundaries (UI vs solver vs math).
 - [x] Add structured error messages and graceful exits (quit, missing deps, invalid inputs).
+
+# Phase 2: Interactivity & Games
+
+## Mini-Games
+- [ ] **"Human vs Solver" Mode**:
+    - [ ] Add a "Drawing Mode" where the user clicks points sequentially to define their own path.
+    - [ ] Compare User Path Length vs Solver Path Length (Score = `Solver / User * 100`).
+    - [ ] Display a "Scoreboard" or comparison overlay.
+- [ ] **"Untangle" (Manual 2-Opt) Game**:
+    - [ ] Generate a random "tangled" path (lots of crossings).
+    - [ ] Allow users to click two edges to perform a swap (manual 2-opt).
+    - [ ] Goal: Untangle the path to match (or beat) a target length.
+
+## Enhanced Visualization
+- [ ] **Step-by-Step Algorithm View**:
+    - [ ] Refactor `path_search.py` solvers to be Python generators (`yield` intermediate states).
+    - [ ] Visualize the "search" process (e.g., Nearest Neighbor "looking" for the next point).
+    - [ ] Visualize 2-opt swaps happening in slow motion (flash edges red/green).
+- [ ] **Minimum Spanning Tree (MST) Overlay**:
+    - [ ] Implement Prim's or Kruskal's algorithm.
+    - [ ] Toggle to draw the MST in the background (faint lines) to show the point "skeleton".
+- [ ] **Alternative Metrics**:
+    - [ ] Add support for Manhattan Distance (`|x1-x2| + |y1-y2|`).
+    - [ ] Add a UI toggle to switch between Euclidean and Manhattan metrics.
