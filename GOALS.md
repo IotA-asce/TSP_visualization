@@ -1,6 +1,6 @@
 # Project Goals (TSP_visualization)
 
-- [ ] Define the target experience: click points, compute TSP route, visualize it clearly and fast.
+- [x] Define the target experience: click points, compute TSP route, visualize it clearly and fast.
 - [x] Move `run_game()` behind `if __name__ == "__main__":` to avoid work at import time.
 - [x] Add a `requirements.txt` (or `pyproject.toml`) describing `pygame`, `numpy`, `scipy`.
 - [x] Add a simple CLI entrypoint (e.g., `python3 -m tsp_visualization`) with window/solver flags.
@@ -40,7 +40,7 @@
 - [x] Add `mypy` configuration and basic typing discipline for new code.
 - [x] Add GitHub Actions CI for lint + typecheck + tests.
 
-- [ ] Expand `README.md` (keep UTF-16 encoding intact) with setup, usage, and limitations.
+- [x] Expand `README.md` (keep UTF-16 encoding intact) with setup, usage, and limitations.
 - [x] Document algorithmic complexity and recommended point limits in the UI.
-- [ ] Add lightweight developer notes on architecture boundaries (UI vs solver vs math).
-- [ ] Add structured error messages and graceful exits (quit, missing deps, invalid inputs).
+- [x] Add lightweight developer notes on architecture boundaries (UI vs solver vs math).
+- [x] Add structured error messages and graceful exits (quit, missing deps, invalid inputs).
