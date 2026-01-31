@@ -36,8 +36,8 @@
 - [x] Add unit tests for `path_search.py` on tiny inputs (2-8 points).
 - [x] Add unit tests for `vector.py` operations and edge cases (zero normalization, div by zero).
 - [x] Add a smoke test that imports modules without side effects.
-- [ ] Add `ruff` configuration and wire up `ruff check` + `ruff format`.
-- [ ] Add `mypy` configuration and basic typing discipline for new code.
+- [x] Add `ruff` configuration and wire up `ruff check` + `ruff format`.
+- [x] Add `mypy` configuration and basic typing discipline for new code.
 - [ ] Add GitHub Actions CI for lint + typecheck + tests.
 
 - [ ] Expand `README.md` (keep UTF-16 encoding intact) with setup, usage, and limitations.
