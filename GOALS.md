@@ -19,9 +19,9 @@
 - [ ] Keep solver deterministic by default; add seeding if randomness is introduced.
 - [ ] Avoid recomputing the full route on every frame; only recompute on input changes.
 - [ ] (Optional) Offload heavy solver runs to a background thread/process to keep UI smooth.
-- [ ] Display route length (and maybe compute time) on-screen.
+- [x] Display route length (and maybe compute time) on-screen.
 
-- [ ] Add keyboard shortcuts: undo last point, clear points, recompute.
+- [x] Add keyboard shortcuts: undo last point, clear points, recompute.
 - [ ] Add a “closed tour” toggle (return to start vs open path).
 - [ ] Improve drawing: anti-aliased lines, thicker path, distinct start/end markers.
 - [ ] Add animated path drawing (progressively reveal the tour).
