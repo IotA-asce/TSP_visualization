@@ -10,6 +10,7 @@ from pathlib import Path
 
 try:
     import pygame
+    import pygame.font
 except ModuleNotFoundError as exc:  # pragma: no cover
     raise ModuleNotFoundError(
         "pygame is required to run the interactive UI; install dependencies via 'pip install -r requirements.txt'"
@@ -111,11 +112,16 @@ def run_game(
     strategy: Strategy = "auto",
 ) -> None:
     pygame.init()
+    if not pygame.font.get_init():
+        pygame.font.init()
 
     window_size = WINDOW_SIZE
     screen = pygame.display.set_mode(window_size, pygame.RESIZABLE)
     clock = pygame.time.Clock()
-    font = pygame.font.Font(None, 22)
+    try:
+        font = pygame.font.Font(None, 22)
+    except Exception:
+        font = None
 
     points: list[tuple[float, float]] = []
     path: list[tuple[float, float]] = []
@@ -430,7 +436,8 @@ def run_game(
         strategy = STRATEGIES[strategy_index]
         length = _path_length(path, closed=closed)
         hud = f"points: {len(points)}  {mode}  {strategy}  length: {length:.1f}  zoom: {view_scale:.2f}"
-        screen.blit(font.render(hud, True, BLACK), HUD_POS)
+        if font:
+            screen.blit(font.render(hud, True, BLACK), HUD_POS)
 
         hint: str | None = None
         if strategy == "bruteforce" and len(points) > 10:
@@ -439,12 +446,15 @@ def run_game(
             hint = "hint: large point counts may be slow; try 'nearest_two_opt'"
 
         if status is not None and time.time() <= status_until:
-            screen.blit(font.render(status, True, BLACK), HUD_STATUS_POS)
+            if font:
+                screen.blit(font.render(status, True, BLACK), HUD_STATUS_POS)
         elif computing:
-            screen.blit(font.render("computing...", True, BLACK), HUD_STATUS_POS)
+            if font:
+                screen.blit(font.render("computing...", True, BLACK), HUD_STATUS_POS)
 
         if hint is not None:
-            screen.blit(font.render(hint, True, BLACK), HUD_HINT_POS)
+            if font:
+                screen.blit(font.render(hint, True, BLACK), HUD_HINT_POS)
 
         if export_path is not None:
             try:
