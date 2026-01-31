@@ -1,7 +1,7 @@
 # Project Goals (TSP_visualization)
 
 - [ ] Define the target experience: click points, compute TSP route, visualize it clearly and fast.
-- [ ] Move `run_game()` behind `if __name__ == "__main__":` to avoid work at import time.
+- [x] Move `run_game()` behind `if __name__ == "__main__":` to avoid work at import time.
 - [x] Add a `requirements.txt` (or `pyproject.toml`) describing `pygame`, `numpy`, `scipy`.
 - [ ] Add a simple CLI entrypoint (e.g., `python3 -m tsp_visualization`) with window/solver flags.
 - [ ] Validate `find_path(points)` inputs and document behavior for `len(points) < 2`.
