@@ -24,7 +24,7 @@
 - [x] Add keyboard shortcuts: undo last point, clear points, recompute.
 - [x] Add a “closed tour” toggle (return to start vs open path).
 - [x] Improve drawing: anti-aliased lines, thicker path, distinct start/end markers.
-- [ ] Add animated path drawing (progressively reveal the tour).
+- [x] Add animated path drawing (progressively reveal the tour).
 - [x] Add drag-to-move points and update the route on release.
 - [ ] Add pan/zoom to support large coordinate ranges.
 - [ ] Handle window resizing cleanly (re-center UI, maintain aspect).

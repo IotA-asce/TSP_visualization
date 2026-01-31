@@ -23,6 +23,7 @@ RED = (200, 30, 30)
 POINT_RADIUS = 5
 POINT_HIT_RADIUS = 12
 PATH_WIDTH = 2
+ANIMATION_SPEED_EDGES_PER_S = 14.0
 HUD_POS = (10, 10)
 HUD_STATUS_POS = (10, 32)
 HUD_HINT_POS = (10, 54)
@@ -105,6 +106,8 @@ def run_game(
     status: str | None = None
     status_until = 0.0
     export_path: Path | None = None
+    animate = True
+    draw_progress = 0.0
 
     def set_status(message: str, *, seconds: float = 2.0) -> None:
         nonlocal status, status_until
@@ -159,11 +162,13 @@ def run_game(
 
     def recompute_path() -> None:
         nonlocal path
+        nonlocal draw_progress
         path = find_path(
             points=points,
             closed=closed,
             strategy=STRATEGIES[strategy_index],
         )
+        draw_progress = 0.0
 
     if initial_points:
         points.extend([(float(x), float(y)) for (x, y) in initial_points])
@@ -192,6 +197,9 @@ def run_game(
                 elif event.key == pygame.K_m:
                     strategy_index = (strategy_index + 1) % len(STRATEGIES)
                     recompute_path()
+                elif event.key == pygame.K_a:
+                    animate = not animate
+                    draw_progress = 0.0
                 elif event.key == pygame.K_s:
                     save_state()
                 elif event.key == pygame.K_l:
@@ -235,26 +243,50 @@ def run_game(
             )
 
         if len(path) >= 2:
-            last = path[0]
-            for point in path[1:]:
-                pygame.draw.line(
-                    screen,
-                    BLACK,
-                    _to_screen(last),
-                    _to_screen(point),
-                    width=PATH_WIDTH,
-                )
-                pygame.draw.aaline(screen, BLACK, _to_screen(last), _to_screen(point))
-                last = point
+            edges: list[tuple[tuple[float, float], tuple[float, float]]] = []
+            for a, b in zip(path, path[1:]):
+                edges.append((a, b))
             if closed:
-                pygame.draw.line(
-                    screen,
-                    BLACK,
-                    _to_screen(last),
-                    _to_screen(path[0]),
-                    width=PATH_WIDTH,
-                )
-                pygame.draw.aaline(screen, BLACK, _to_screen(last), _to_screen(path[0]))
+                edges.append((path[-1], path[0]))
+
+            if animate:
+                full_edges = min(int(draw_progress), len(edges))
+                frac = min(max(draw_progress - full_edges, 0.0), 1.0)
+
+                for i in range(full_edges):
+                    a, b = edges[i]
+                    pygame.draw.line(
+                        screen,
+                        BLACK,
+                        _to_screen(a),
+                        _to_screen(b),
+                        width=PATH_WIDTH,
+                    )
+                    pygame.draw.aaline(screen, BLACK, _to_screen(a), _to_screen(b))
+
+                if full_edges < len(edges) and frac > 0.0:
+                    a, b = edges[full_edges]
+                    x = a[0] + (b[0] - a[0]) * frac
+                    y = a[1] + (b[1] - a[1]) * frac
+                    mid = (x, y)
+                    pygame.draw.line(
+                        screen,
+                        BLACK,
+                        _to_screen(a),
+                        _to_screen(mid),
+                        width=PATH_WIDTH,
+                    )
+                    pygame.draw.aaline(screen, BLACK, _to_screen(a), _to_screen(mid))
+            else:
+                for a, b in edges:
+                    pygame.draw.line(
+                        screen,
+                        BLACK,
+                        _to_screen(a),
+                        _to_screen(b),
+                        width=PATH_WIDTH,
+                    )
+                    pygame.draw.aaline(screen, BLACK, _to_screen(a), _to_screen(b))
 
         mode = "closed" if closed else "open"
         strategy = STRATEGIES[strategy_index]
@@ -284,7 +316,10 @@ def run_game(
             export_path = None
 
         pygame.display.flip()
-        clock.tick(60)
+
+        dt_s = clock.tick(60) / 1000.0
+        if animate and len(path) >= 2:
+            draw_progress += ANIMATION_SPEED_EDGES_PER_S * dt_s
 
 
 if __name__ == "__main__":
