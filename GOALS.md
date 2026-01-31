@@ -22,10 +22,10 @@
 - [x] Display route length (and maybe compute time) on-screen.
 
 - [x] Add keyboard shortcuts: undo last point, clear points, recompute.
-- [ ] Add a “closed tour” toggle (return to start vs open path).
-- [ ] Improve drawing: anti-aliased lines, thicker path, distinct start/end markers.
+- [x] Add a “closed tour” toggle (return to start vs open path).
+- [x] Improve drawing: anti-aliased lines, thicker path, distinct start/end markers.
 - [ ] Add animated path drawing (progressively reveal the tour).
-- [ ] Add drag-to-move points and update the route on release.
+- [x] Add drag-to-move points and update the route on release.
 - [ ] Add pan/zoom to support large coordinate ranges.
 - [ ] Handle window resizing cleanly (re-center UI, maintain aspect).
 - [ ] Add a "save points" and "load points" feature (JSON or CSV).
