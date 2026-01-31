@@ -7,10 +7,7 @@ class TestImports(unittest.TestCase):
         importlib.import_module("vector")
 
     def test_import_path_search(self) -> None:
-        try:
-            importlib.import_module("path_search")
-        except ModuleNotFoundError as exc:
-            raise unittest.SkipTest(f"path_search dependencies missing: {exc}") from exc
+        importlib.import_module("path_search")
 
     def test_import_game_screen(self) -> None:
         try:

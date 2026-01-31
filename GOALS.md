@@ -11,13 +11,13 @@
 - [ ] Decide whether `Vector` is core; if yes, migrate to `@dataclass(frozen=True)`.
 
 - [x] Factor distance computation into a pure helper and unit test it.
-- [ ] Keep the brute-force solver as a reference implementation for small `n`.
-- [ ] Add a nearest-neighbor heuristic solver for interactive responsiveness.
-- [ ] Add 2-opt improvement on top of an initial tour.
-- [ ] Add a “solver strategy” selector (brute-force vs heuristic) based on `n`.
-- [ ] Add an optional time budget / iteration cap for heuristics.
-- [ ] Keep solver deterministic by default; add seeding if randomness is introduced.
-- [ ] Avoid recomputing the full route on every frame; only recompute on input changes.
+- [x] Keep the brute-force solver as a reference implementation for small `n`.
+- [x] Add a nearest-neighbor heuristic solver for interactive responsiveness.
+- [x] Add 2-opt improvement on top of an initial tour.
+- [x] Add a “solver strategy” selector (brute-force vs heuristic) based on `n`.
+- [x] Add an optional time budget / iteration cap for heuristics.
+- [x] Keep solver deterministic by default; add seeding if randomness is introduced.
+- [x] Avoid recomputing the full route on every frame; only recompute on input changes.
 - [ ] (Optional) Offload heavy solver runs to a background thread/process to keep UI smooth.
 - [x] Display route length (and maybe compute time) on-screen.
 
