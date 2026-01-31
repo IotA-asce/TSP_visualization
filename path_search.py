@@ -12,8 +12,17 @@ from collections.abc import Sequence
 from itertools import permutations
 from typing import TypeAlias
 
-import numpy as np
-from scipy.spatial.distance import cdist
+try:
+    import numpy as np
+except ModuleNotFoundError as exc:  # pragma: no cover
+    raise ModuleNotFoundError(
+        "numpy is required for path_search; install dependencies via 'pip install -r requirements.txt'"
+    ) from exc
+
+if not hasattr(np, "asarray"):  # pragma: no cover
+    raise ModuleNotFoundError(
+        "numpy is required for path_search; install dependencies via 'pip install -r requirements.txt'"
+    )
 
 Point: TypeAlias = tuple[float, float]
 
@@ -43,6 +52,8 @@ def find_path(points: Sequence[Point]) -> list[Point]:
     points_array = np.asarray(points_list, dtype=float)
     if points_array.shape != (n, 2):
         raise ValueError("points must be a sequence of (x, y) pairs")
+
+    from scipy.spatial.distance import cdist
 
     distances = cdist(points_array, points_array)
 
