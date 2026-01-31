@@ -23,6 +23,9 @@ HUD_STATUS_POS = (10, 32)
 
 SAVE_PATH = Path("points.json")
 EXPORT_PREFIX = "export"
+DATA_DIR = Path(__file__).resolve().parent / "data"
+DEMO_SMALL_PATH = DATA_DIR / "small.json"
+DEMO_MEDIUM_PATH = DATA_DIR / "medium.json"
 
 STRATEGIES: list[Strategy] = [
     "auto",
@@ -104,26 +107,26 @@ def run_game() -> None:
         SAVE_PATH.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n", encoding="utf-8")
         set_status(f"saved {len(points)} points -> {SAVE_PATH}")
 
-    def load_state() -> None:
+    def load_state(path: Path) -> None:
         nonlocal closed, strategy_index, dragging_index
         try:
-            data = json.loads(SAVE_PATH.read_text(encoding="utf-8"))
+            data = json.loads(path.read_text(encoding="utf-8"))
         except FileNotFoundError:
-            set_status(f"missing {SAVE_PATH}")
+            set_status(f"missing {path}")
             return
         except json.JSONDecodeError:
-            set_status(f"invalid json in {SAVE_PATH}")
+            set_status(f"invalid json in {path}")
             return
 
         raw_points = data.get("points")
         if not isinstance(raw_points, list):
-            set_status(f"invalid format in {SAVE_PATH}")
+            set_status(f"invalid format in {path}")
             return
 
         loaded_points: list[tuple[float, float]] = []
         for p in raw_points:
             if not isinstance(p, list) or len(p) != 2:
-                set_status(f"invalid point in {SAVE_PATH}")
+                set_status(f"invalid point in {path}")
                 return
             loaded_points.append((float(p[0]), float(p[1])))
 
@@ -139,7 +142,7 @@ def run_game() -> None:
 
         dragging_index = None
         recompute_path()
-        set_status(f"loaded {len(points)} points <- {SAVE_PATH}")
+        set_status(f"loaded {len(points)} points <- {path}")
 
     def recompute_path() -> None:
         nonlocal path
@@ -175,7 +178,11 @@ def run_game() -> None:
                 elif event.key == pygame.K_s:
                     save_state()
                 elif event.key == pygame.K_l:
-                    load_state()
+                    load_state(SAVE_PATH)
+                elif event.key == pygame.K_1:
+                    load_state(DEMO_SMALL_PATH)
+                elif event.key == pygame.K_2:
+                    load_state(DEMO_MEDIUM_PATH)
                 elif event.key == pygame.K_e:
                     export_path = Path(f"{EXPORT_PREFIX}_{time.strftime('%Y%m%d_%H%M%S')}.png")
                     set_status(f"exporting -> {export_path}")

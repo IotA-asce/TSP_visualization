@@ -31,7 +31,7 @@
 - [x] Add a "save points" and "load points" feature (JSON or CSV).
 
 - [x] Add "export image" (PNG) of the current scene.
-- [ ] Add reproducible demo datasets (small, medium) for quick manual testing.
+- [x] Add reproducible demo datasets (small, medium) for quick manual testing.
 - [ ] Add a non-interactive benchmark script to compare solver strategies.
 - [x] Add unit tests for `path_search.py` on tiny inputs (2-8 points).
 - [x] Add unit tests for `vector.py` operations and edge cases (zero normalization, div by zero).
