@@ -38,7 +38,7 @@
 - [x] Add a smoke test that imports modules without side effects.
 - [x] Add `ruff` configuration and wire up `ruff check` + `ruff format`.
 - [x] Add `mypy` configuration and basic typing discipline for new code.
-- [ ] Add GitHub Actions CI for lint + typecheck + tests.
+- [x] Add GitHub Actions CI for lint + typecheck + tests.
 
 - [ ] Expand `README.md` (keep UTF-16 encoding intact) with setup, usage, and limitations.
 - [ ] Document algorithmic complexity and recommended point limits in the UI.
