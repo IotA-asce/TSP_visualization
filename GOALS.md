@@ -4,9 +4,9 @@
 - [x] Move `run_game()` behind `if __name__ == "__main__":` to avoid work at import time.
 - [x] Add a `requirements.txt` (or `pyproject.toml`) describing `pygame`, `numpy`, `scipy`.
 - [ ] Add a simple CLI entrypoint (e.g., `python3 -m tsp_visualization`) with window/solver flags.
-- [ ] Validate `find_path(points)` inputs and document behavior for `len(points) < 2`.
-- [ ] Fix naming typos (e.g., `route_distace` -> `route_distance`) and tighten naming consistency.
-- [ ] Add type hints across the solver and UI boundary (points as `tuple[float, float]`).
+- [x] Validate `find_path(points)` inputs and document behavior for `len(points) < 2`.
+- [x] Fix naming typos (e.g., `route_distace` -> `route_distance`) and tighten naming consistency.
+- [x] Add type hints across the solver and UI boundary (points as `tuple[float, float]`).
 - [ ] Make `Vector.__mul__` return `NotImplemented` for unsupported operand types.
 - [ ] Decide whether `Vector` is core; if yes, migrate to `@dataclass(frozen=True)`.
 
