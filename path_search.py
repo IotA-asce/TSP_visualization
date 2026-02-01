@@ -14,9 +14,9 @@ from __future__ import annotations
 
 import math
 import time
-from collections.abc import Iterable, Sequence
+from collections.abc import Generator, Iterable, Sequence
 from itertools import permutations
-from typing import Literal, TypeAlias
+from typing import Any, Literal, TypeAlias
 
 Point: TypeAlias = tuple[float, float]
 Strategy: TypeAlias = Literal[
@@ -114,12 +114,12 @@ def _solve_bruteforce(
     return list(best_route)
 
 
-def _solve_nearest_neighbor(
+def _solve_nearest_neighbor_gen(
     distances: Sequence[Sequence[float]],
     *,
     closed: bool,
     time_budget_s: float | None,
-) -> list[int]:
+) -> Generator[list[int], None, list[int]]:
     n = len(distances)
     if n < 2:
         return list(range(n))
@@ -128,6 +128,9 @@ def _solve_nearest_neighbor(
 
     best_route: list[int] | None = None
     best_len = float("inf")
+
+    # To keep it interactive, we can yield updates when we find a better route
+    # or even during construction if desired. For now, let's yield complete routes.
 
     for start in range(n):
         if time_budget_s is not None and (time.perf_counter() - start_time) > time_budget_s:
@@ -143,6 +146,9 @@ def _solve_nearest_neighbor(
             route.append(nxt)
             current = nxt
 
+        # Yield candidate
+        yield route
+
         length = _route_length(distances, route, closed=closed)
         if length < best_len:
             best_len = length
@@ -151,13 +157,26 @@ def _solve_nearest_neighbor(
     return best_route if best_route is not None else list(range(n))
 
 
-def _two_opt(
-    route: list[int],
+def _solve_nearest_neighbor(
     distances: Sequence[Sequence[float]],
     *,
     closed: bool,
     time_budget_s: float | None,
 ) -> list[int]:
+    gen = _solve_nearest_neighbor_gen(distances, closed=closed, time_budget_s=time_budget_s)
+    result = list(range(len(distances)))
+    for route in gen:
+        result = route
+    return result
+
+
+def _two_opt_gen(
+    route: list[int],
+    distances: Sequence[Sequence[float]],
+    *,
+    closed: bool,
+    time_budget_s: float | None,
+) -> Generator[list[int], None, list[int]]:
     n = len(route)
     if n < 4:
         return route
@@ -194,11 +213,88 @@ def _two_opt(
                 if after + 1e-12 < before:
                     route[i : k + 1] = reversed(route[i : k + 1])
                     improved = True
+                    yield list(route)  # Yield a copy of the improved route
 
         if not improved:
             break
 
     return route
+
+
+def _two_opt(
+    route: list[int],
+    distances: Sequence[Sequence[float]],
+    *,
+    closed: bool,
+    time_budget_s: float | None,
+) -> list[int]:
+    gen = _two_opt_gen(route, distances, closed=closed, time_budget_s=time_budget_s)
+    result = route
+    for r in gen:
+        result = r
+    return result
+
+
+def find_path_step(
+    points: Sequence[Point],
+    *,
+    strategy: Strategy = "auto",
+    closed: bool = True,
+    time_budget_s: float | None = None,
+) -> Generator[list[Point], None, list[Point]]:
+    """Yield intermediate paths for visualization."""
+    points_list = _coerce_points(points)
+    n = len(points_list)
+    if n < 2:
+        yield list(points_list)
+        return list(points_list)
+
+    if strategy == "auto":
+        strategy = "bruteforce" if n <= 10 else "nearest_two_opt"
+
+    distances = _distance_matrix(points_list)
+
+    if strategy == "bruteforce":
+        # Bruteforce isn't easily stepped in a meaningful visual way without spamming,
+        # so we just solve it and yield the result.
+        route = _solve_bruteforce(distances, closed=closed)
+        path = [points_list[i] for i in route]
+        yield path
+        return path
+
+    if strategy == "nearest":
+        gen = _solve_nearest_neighbor_gen(distances, closed=closed, time_budget_s=time_budget_s)
+        route = list(range(n))
+        for r in gen:
+            route = r
+            yield [points_list[i] for i in route]
+        return [points_list[i] for i in route]
+
+    if strategy == "two_opt":
+        route = list(range(n))
+        gen = _two_opt_gen(route, distances, closed=closed, time_budget_s=time_budget_s)
+        for r in gen:
+            route = r
+            yield [points_list[i] for i in route]
+        return [points_list[i] for i in route]
+
+    if strategy == "nearest_two_opt":
+        # Phase 1: Nearest Neighbor
+        gen_nn = _solve_nearest_neighbor_gen(distances, closed=closed, time_budget_s=time_budget_s)
+        route = list(range(n))
+        for r in gen_nn:
+            route = r
+            yield [points_list[i] for i in route]
+
+        # Phase 2: 2-Opt
+        gen_2opt = _two_opt_gen(route, distances, closed=closed, time_budget_s=time_budget_s)
+        for r in gen_2opt:
+            route = r
+            yield [points_list[i] for i in route]
+
+        return [points_list[i] for i in route]
+
+    raise ValueError(f"Unknown strategy: {strategy!r}")
 
 
 def find_path(

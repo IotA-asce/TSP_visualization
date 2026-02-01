@@ -15,7 +15,7 @@ except ModuleNotFoundError as exc:  # pragma: no cover
         "pygame is required to run the interactive UI; install dependencies via 'pip install -r requirements.txt'"
     ) from exc
 
-from path_search import Strategy, find_path
+from path_search import Strategy, find_path, find_path_step
 
 WINDOW_SIZE = (1000, 1000)
 WHITE = (255, 255, 255)
@@ -143,6 +143,7 @@ def run_game(
     status_until = 0.0
     export_path: Path | None = None
     animate = True
+    step_by_step = False  # Toggle for visualizing solver steps
     draw_progress = 0.0
 
     compute_lock = threading.Lock()
@@ -245,11 +246,55 @@ def run_game(
 
             t0 = time.perf_counter()
             try:
-                new_path = find_path(
-                    points=points_snapshot,
-                    closed=closed_snapshot,
-                    strategy=strategy_snapshot,
-                )
+                if step_by_step:
+                    # Generator mode for visualization
+                    gen = find_path_step(
+                        points=points_snapshot,
+                        closed=closed_snapshot,
+                        strategy=strategy_snapshot,
+                    )
+
+                    final_path = []
+                    step_count = 0
+
+                    for step_path in gen:
+                        with compute_lock:
+                            if request_id != compute_request_id:
+                                return
+                            path = step_path
+                            draw_progress = float(len(path))  # Show full path immediately
+
+                        step_count += 1
+                        # Throttle updates slightly to make them visible
+                        time.sleep(0.05)
+
+                    final_path = path  # Last yielded path is the result
+
+                    with compute_lock:
+                        if request_id != compute_request_id:
+                            return
+                        computing = False
+
+                    elapsed_ms = (time.perf_counter() - t0) * 1000.0
+                    set_status(f"visualized {step_count} steps in {elapsed_ms:.1f} ms")
+
+                else:
+                    # Standard atomic update
+                    new_path = find_path(
+                        points=points_snapshot,
+                        closed=closed_snapshot,
+                        strategy=strategy_snapshot,
+                    )
+
+                    elapsed_ms = (time.perf_counter() - t0) * 1000.0
+                    with compute_lock:
+                        if request_id != compute_request_id:
+                            return
+                        path = new_path
+                        draw_progress = 0.0
+                        computing = False
+                    set_status(f"computed in {elapsed_ms:.1f} ms")
+
             except Exception as exc:
                 with compute_lock:
                     if request_id != compute_request_id:
@@ -257,15 +302,6 @@ def run_game(
                     computing = False
                 set_status(f"solver error: {exc}")
                 return
-
-            elapsed_ms = (time.perf_counter() - t0) * 1000.0
-            with compute_lock:
-                if request_id != compute_request_id:
-                    return
-                path = new_path
-                draw_progress = 0.0
-                computing = False
-            set_status(f"computed in {elapsed_ms:.1f} ms")
 
         threading.Thread(target=worker, daemon=True).start()
 
@@ -323,6 +359,16 @@ def run_game(
                 elif event.key == pygame.K_a:
                     animate = not animate
                     draw_progress = 0.0
+                elif event.key == pygame.K_v:
+                    step_by_step = not step_by_step
+                    status_msg = (
+                        "Step-by-Step Visualization: ON"
+                        if step_by_step
+                        else "Step-by-Step Visualization: OFF"
+                    )
+                    set_status(status_msg)
+                    if step_by_step:
+                        recompute_path()
                 elif event.key == pygame.K_s:
                     save_state()
                 elif event.key == pygame.K_l:

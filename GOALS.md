@@ -58,10 +58,10 @@
     - [x] Goal: Untangle the path to match (or beat) a target length.
 
 ## Enhanced Visualization
-- [ ] **Step-by-Step Algorithm View**:
-    - [ ] Refactor `path_search.py` solvers to be Python generators (`yield` intermediate states).
-    - [ ] Visualize the "search" process (e.g., Nearest Neighbor "looking" for the next point).
-    - [ ] Visualize 2-opt swaps happening in slow motion (flash edges red/green).
+- [x] **Step-by-Step Algorithm View**:
+    - [x] Refactor `path_search.py` solvers to be Python generators (`yield` intermediate states).
+    - [x] Visualize the "search" process (e.g., Nearest Neighbor "looking" for the next point).
+    - [x] Visualize 2-opt swaps happening in slow motion (flash edges red/green).
 - [ ] **Minimum Spanning Tree (MST) Overlay**:
     - [ ] Implement Prim's or Kruskal's algorithm.
     - [ ] Toggle to draw the MST in the background (faint lines) to show the point "skeleton".
