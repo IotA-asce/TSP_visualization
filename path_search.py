@@ -294,7 +294,58 @@ def find_path_step(
 
         return [points_list[i] for i in route]
 
-    raise ValueError(f"Unknown strategy: {strategy!r}")
+    return route
+
+
+def compute_mst(points: Sequence[Point]) -> list[tuple[int, int]]:
+    """Compute the Minimum Spanning Tree (MST) using Prim's algorithm.
+
+    Returns:
+        A list of (u, v) tuples representing edges in the MST by index.
+    """
+    points_list = _coerce_points(points)
+    n = len(points_list)
+    if n < 2:
+        return []
+
+    distances = _distance_matrix(points_list)
+
+    # Prim's Algorithm
+    in_mst = [False] * n
+    min_dist = [float("inf")] * n
+    parent = [-1] * n
+
+    # Start from node 0
+    min_dist[0] = 0.0
+
+    mst_edges: list[tuple[int, int]] = []
+
+    for _ in range(n):
+        # Find vertex u not in MST with minimum min_dist value
+        u = -1
+        best_d = float("inf")
+
+        for i in range(n):
+            if not in_mst[i] and min_dist[i] < best_d:
+                best_d = min_dist[i]
+                u = i
+
+        if u == -1:
+            break
+
+        in_mst[u] = True
+
+        # Add edge to MST if valid parent exists
+        if parent[u] != -1:
+            mst_edges.append((parent[u], u))
+
+        # Update adjacent vertices
+        for v in range(n):
+            if not in_mst[v] and distances[u][v] < min_dist[v]:
+                min_dist[v] = distances[u][v]
+                parent[v] = u
+
+    return mst_edges
 
 
 def find_path(

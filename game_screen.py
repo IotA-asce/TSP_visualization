@@ -15,7 +15,7 @@ except ModuleNotFoundError as exc:  # pragma: no cover
         "pygame is required to run the interactive UI; install dependencies via 'pip install -r requirements.txt'"
     ) from exc
 
-from path_search import Strategy, find_path, find_path_step
+from path_search import Strategy, compute_mst, find_path, find_path_step
 
 WINDOW_SIZE = (1000, 1000)
 WHITE = (255, 255, 255)
@@ -144,6 +144,8 @@ def run_game(
     export_path: Path | None = None
     animate = True
     step_by_step = False  # Toggle for visualizing solver steps
+    show_mst = False  # Toggle for MST overlay
+    mst_edges: list[tuple[int, int]] = []
     draw_progress = 0.0
 
     compute_lock = threading.Lock()
@@ -221,6 +223,7 @@ def run_game(
     def recompute_path() -> None:
         nonlocal path
         nonlocal draw_progress
+        nonlocal mst_edges
 
         nonlocal compute_request_id
         nonlocal computing
@@ -231,6 +234,7 @@ def run_game(
 
         if len(points_snapshot) < 2:
             path = list(points_snapshot)
+            mst_edges = []
             draw_progress = 0.0
             return
 
@@ -243,9 +247,15 @@ def run_game(
             nonlocal path
             nonlocal draw_progress
             nonlocal computing
+            nonlocal mst_edges
 
             t0 = time.perf_counter()
             try:
+                # Compute MST if enabled or just to have it ready
+                # Since it's fast (O(N^2)), we can just compute it.
+                # Ideally, we would cache it, but recomputing is safe for N < 2000.
+                new_mst = compute_mst(points_snapshot)
+
                 if step_by_step:
                     # Generator mode for visualization
                     gen = find_path_step(
@@ -267,12 +277,12 @@ def run_game(
                         step_count += 1
                         # Throttle updates slightly to make them visible
                         time.sleep(0.05)
-
                     final_path = path  # Last yielded path is the result
 
                     with compute_lock:
                         if request_id != compute_request_id:
                             return
+                        mst_edges = new_mst
                         computing = False
 
                     elapsed_ms = (time.perf_counter() - t0) * 1000.0
@@ -291,6 +301,7 @@ def run_game(
                         if request_id != compute_request_id:
                             return
                         path = new_path
+                        mst_edges = new_mst
                         draw_progress = 0.0
                         computing = False
                     set_status(f"computed in {elapsed_ms:.1f} ms")
@@ -369,8 +380,12 @@ def run_game(
                     set_status(status_msg)
                     if step_by_step:
                         recompute_path()
+                elif event.key == pygame.K_n:
+                    show_mst = not show_mst
+                    set_status(f"MST Overlay: {'ON' if show_mst else 'OFF'}")
                 elif event.key == pygame.K_s:
                     save_state()
+
                 elif event.key == pygame.K_l:
                     load_state(SAVE_PATH)
                 elif event.key == pygame.K_1:
@@ -523,6 +538,19 @@ def run_game(
                     recompute_path()
 
         screen.fill(WHITE)
+
+        if show_mst and mst_edges:
+            GREY = (200, 200, 200)
+            for idx1, idx2 in mst_edges:
+                p1 = points[idx1]
+                p2 = points[idx2]
+                pygame.draw.line(
+                    screen,
+                    GREY,
+                    _world_to_screen(p1, scale=view_scale, offset=view_offset),
+                    _world_to_screen(p2, scale=view_scale, offset=view_offset),
+                    width=1,
+                )
 
         for point in points:
             color = BLACK

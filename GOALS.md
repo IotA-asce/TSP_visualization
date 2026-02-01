@@ -62,9 +62,9 @@
     - [x] Refactor `path_search.py` solvers to be Python generators (`yield` intermediate states).
     - [x] Visualize the "search" process (e.g., Nearest Neighbor "looking" for the next point).
     - [x] Visualize 2-opt swaps happening in slow motion (flash edges red/green).
-- [ ] **Minimum Spanning Tree (MST) Overlay**:
-    - [ ] Implement Prim's or Kruskal's algorithm.
-    - [ ] Toggle to draw the MST in the background (faint lines) to show the point "skeleton".
+- [x] **Minimum Spanning Tree (MST) Overlay**:
+    - [x] Implement Prim's or Kruskal's algorithm.
+    - [x] Toggle to draw the MST in the background (faint lines) to show the point "skeleton".
 - [ ] **Alternative Metrics**:
     - [ ] Add support for Manhattan Distance (`|x1-x2| + |y1-y2|`).
     - [ ] Add a UI toggle to switch between Euclidean and Manhattan metrics.
