@@ -52,10 +52,10 @@
     - [x] Add a "Drawing Mode" where the user clicks points sequentially to define their own path.
     - [x] Compare User Path Length vs Solver Path Length (Score = `Solver / User * 100`).
     - [x] Display a "Scoreboard" or comparison overlay.
-- [ ] **"Untangle" (Manual 2-Opt) Game**:
-    - [ ] Generate a random "tangled" path (lots of crossings).
-    - [ ] Allow users to click two edges to perform a swap (manual 2-opt).
-    - [ ] Goal: Untangle the path to match (or beat) a target length.
+- [x] **"Untangle" (Manual 2-Opt) Game**:
+    - [x] Generate a random "tangled" path (lots of crossings).
+    - [x] Allow users to click two edges to perform a swap (manual 2-opt).
+    - [x] Goal: Untangle the path to match (or beat) a target length.
 
 ## Enhanced Visualization
 - [ ] **Step-by-Step Algorithm View**:

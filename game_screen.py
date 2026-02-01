@@ -160,6 +160,12 @@ def run_game(
     user_route: list[int] = []
     solver_best_len: float = 0.0
 
+    # Untangle Game Mode State
+    untangle_mode = False
+    untangle_path: list[int] = []
+    untangle_target: float = 0.0
+    untangle_selected_edge: int | None = None  # index in untangle_path
+
     def set_status(message: str, *, seconds: float = 2.0) -> None:
         nonlocal status, status_until
         status = message
@@ -340,6 +346,26 @@ def run_game(
                             set_status("Exited Human Mode")
                     else:
                         set_status("Need at least 3 points for Human Mode")
+                elif event.key == pygame.K_u:
+                    if len(points) >= 4:
+                        untangle_mode = not untangle_mode
+                        if untangle_mode:
+                            # Generate a random shuffled path
+                            import random
+
+                            untangle_path = list(range(len(points)))
+                            random.shuffle(untangle_path)
+                            untangle_selected_edge = None
+
+                            # Calculate target using the solver
+                            target_pts = find_path(points, closed=closed, strategy="auto")
+                            untangle_target = _path_length(target_pts, closed=closed)
+
+                            set_status("Untangle Mode: Click edges to swap them")
+                        else:
+                            set_status("Exited Untangle Mode")
+                    else:
+                        set_status("Need at least 4 points for Untangle Mode")
 
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 3:
                 panning = True
@@ -361,6 +387,64 @@ def run_game(
                         elif closed and len(user_route) == len(points) and hit == user_route[0]:
                             # Allow closing the loop by clicking the first point again
                             pass
+                elif untangle_mode:
+                    # Logic for selecting edges to swap
+                    mx, my = mouse_screen
+                    best_edge_idx = None
+                    best_edge_dist = 10.0  # hit threshold in pixels
+
+                    n = len(untangle_path)
+                    for i in range(n):
+                        if not closed and i == n - 1:
+                            break
+
+                        idx1 = untangle_path[i]
+                        idx2 = untangle_path[(i + 1) % n]
+                        p1 = _world_to_screen(points[idx1], scale=view_scale, offset=view_offset)
+                        p2 = _world_to_screen(points[idx2], scale=view_scale, offset=view_offset)
+
+                        # Distance from point (mx, my) to line segment p1-p2
+                        x1, y1 = p1
+                        x2, y2 = p2
+
+                        dx = x2 - x1
+                        dy = y2 - y1
+                        if dx == 0 and dy == 0:
+                            continue
+
+                        # Project point onto line (parameter t)
+                        t = ((mx - x1) * dx + (my - y1) * dy) / (dx * dx + dy * dy)
+                        t = max(0, min(1, t))
+
+                        closest_x = x1 + t * dx
+                        closest_y = y1 + t * dy
+
+                        dist = math.hypot(mx - closest_x, my - closest_y)
+                        if dist < best_edge_dist:
+                            best_edge_dist = dist
+                            best_edge_idx = i
+
+                    if best_edge_idx is not None:
+                        if untangle_selected_edge is None:
+                            untangle_selected_edge = best_edge_idx
+                        else:
+                            # Perform 2-opt swap logic
+                            i = untangle_selected_edge
+                            j = best_edge_idx
+
+                            if i > j:
+                                i, j = j, i
+
+                            # Valid swap condition for 2-opt
+                            if i != j and (closed or (i > 0 and j < n - 1)):
+                                # Reverses the segment between i+1 and j
+                                # untangle_path[i+1 : j+1] = reversed(untangle_path[i+1 : j+1])
+                                # Python slice assignment handles the reversal
+                                new_segment = untangle_path[i + 1 : j + 1]
+                                new_segment.reverse()
+                                untangle_path[i + 1 : j + 1] = new_segment
+
+                            untangle_selected_edge = None
                 else:
                     if hit is None:
                         points.append(
@@ -405,13 +489,14 @@ def run_game(
                 radius=POINT_RADIUS,
             )
 
-        if len(path) >= 2 and not human_mode:
+        if len(path) >= 2 and not human_mode and not untangle_mode:
             edges: list[tuple[tuple[float, float], tuple[float, float]]] = []
             for a, b in zip(path, path[1:]):
                 edges.append((a, b))
             if closed:
                 edges.append((path[-1], path[0]))
 
+            # ... (animation logic remains here) ...
             if animate:
                 full_edges = min(int(draw_progress), len(edges))
                 frac = min(max(draw_progress - full_edges, 0.0), 1.0)
@@ -496,6 +581,32 @@ def run_game(
                     width=PATH_WIDTH,
                 )
 
+        if untangle_mode and len(untangle_path) >= 2:
+            # Draw untangle edges
+            ORANGE = (255, 165, 0)
+            SELECTED = (255, 0, 255)  # Magenta
+
+            n = len(untangle_path)
+            for i in range(n):
+                if not closed and i == n - 1:
+                    break
+
+                idx1 = untangle_path[i]
+                idx2 = untangle_path[(i + 1) % n]
+                p1 = points[idx1]
+                p2 = points[idx2]
+
+                color = SELECTED if i == untangle_selected_edge else ORANGE
+                width = PATH_WIDTH + 2 if i == untangle_selected_edge else PATH_WIDTH
+
+                pygame.draw.line(
+                    screen,
+                    color,
+                    _world_to_screen(p1, scale=view_scale, offset=view_offset),
+                    _world_to_screen(p2, scale=view_scale, offset=view_offset),
+                    width=width,
+                )
+
         mode = "closed" if closed else "open"
         strategy = STRATEGIES[strategy_index]
         length = _path_length(path, closed=closed)
@@ -514,6 +625,16 @@ def run_game(
                 score_str = f"  AI: {solver_best_len:.1f}  Score: {ratio:.1f}%"
 
             hud = f"HUMAN MODE: {len(user_route)}/{len(points)}  User: {user_len:.1f}{score_str}"
+        elif untangle_mode:
+            current_len = 0.0
+            if untangle_path:
+                pts = [points[i] for i in untangle_path]
+                current_len = _path_length(pts, closed=closed)
+
+            diff = (current_len / untangle_target) * 100 if untangle_target > 0 else 0
+            hud = (
+                f"UNTANGLE: Target: {untangle_target:.1f}  Current: {current_len:.1f} ({diff:.1f}%)"
+            )
         else:
             hud = f"points: {len(points)}  {mode}  {strategy}  length: {length:.1f}  zoom: {view_scale:.2f}"
 
